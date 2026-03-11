@@ -1,0 +1,21 @@
+<div class="graphreports-dashboard">
+    <div class="graphreports-header">
+        <h3 class="graphreports-title">{{dashboard_title}}</h3>
+        <span class="graphreports-header-badge {{role_badge_class}}">{{role_label}}</span>
+    </div>
+    <div class="graphreports-kpi-row">
+        {{#kpis}}
+            {{> block_graphreports/partials/kpi_card}}
+        {{/kpis}}
+    </div>
+    <div class="graphreports-grid {{grid_class}}">
+        {{#charts}}
+            {{#has_data}}
+                {{> block_graphreports/partials/chart_card}}
+            {{/has_data}}
+            {{^has_data}}
+                {{> block_graphreports/partials/empty_state}}
+            {{/has_data}}
+        {{/charts}}
+    </div>
+</div>
