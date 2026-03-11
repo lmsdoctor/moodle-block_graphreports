@@ -56,23 +56,23 @@
 }
 
 .graphreports-kpi-card--green {
-    background: #e5ffad;  /* brand sky-blue tint – charts with data (positive) */
-    color: #5b8500;
+    color: #e5ffad;  /* brand sky-blue tint – charts with data (positive) */
+    background-color: #5b8500;
 }
 
 .graphreports-kpi-card--red {
-    background: #fde9cc;  /* brand orange tint – data points (attention)       */
-    color: #7a4b00;
+    color: #fde9cc;  /* brand orange tint – data points (attention)       */
+    background-color: #57330f;
 }
 
 .graphreports-kpi-card--blue {
-    background: #d4eefb;  /* brand blue tint – total charts (primary)           */
-    color: #015a99;
+    color: #d4eefb;  /* brand blue tint – total charts (primary)           */
+    background-color: #018ae6;
 }
 
 .graphreports-kpi-card--yellow {
-    background: #fef9d8;  /* brand yellow tint – empty charts (neutral)         */
-    color: #6b5a00;
+    color: #fef9d8;  /* brand yellow tint – empty charts (neutral)         */
+    background-color: #f1990f;
 }
 
 .graphreports-kpi-value {
