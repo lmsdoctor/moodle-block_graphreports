@@ -27,6 +27,46 @@ namespace block_graphreports;
 defined('MOODLE_INTERNAL') || die();
 
 class report_manager {
+    // ── Brand palette ─────────────────────────────────────────────────────────
+    //    Primary blue : #018ae6  |  Yellow : #f6d402  |  Orange : #f1990f
+    //    Brown        : #57330f  |  Gray   : #9ca3af (darkened from #f5f5f5)
+    //    Derived tints: blue #60b8f4 · yellow #fde84d · orange #f7ba6e
+    //    Derived shades: orange dark #c4720a · brown mid #8a5525
+
+    // ── Semantic roles — status / completion ──────────────────────────────────
+    private const COLOR_COMPLETED     = '#018ae6';          // Brand blue   – completed / positive
+    private const COLOR_INPROGRESS    = '#f6d402';          // Brand yellow – in progress
+    private const COLOR_NOTSTARTED    = '#9ca3af';          // Neutral gray – not yet started
+    private const COLOR_PENDING       = '#f7ba6e';          // Orange tint  – pending activities
+
+    // ── Semantic roles — user states ──────────────────────────────────────────
+    private const COLOR_ACTIVE        = '#018ae6';          // Brand blue   – active users
+    private const COLOR_INACTIVE      = '#f1990f';          // Brand orange – inactive / alert
+    private const COLOR_NEVER_LOGGED  = '#57330f';          // Brand brown  – never accessed
+    private const COLOR_WITH_ACCESS   = '#60b8f4';          // Blue tint    – has logged in
+
+    // ── Line / series colours ─────────────────────────────────────────────────
+    private const COLOR_LOGINS        = '#018ae6';          // Brand blue   – login line
+    private const COLOR_REGISTRATIONS = '#f6d402';          // Brand yellow – registration line
+
+    // ── Single-colour accent bars ─────────────────────────────────────────────
+    private const COLOR_PRIMARY       = '#018ae6';          // Brand blue   – primary bars
+    private const COLOR_ORANGE_ACCENT  = '#f1990f';          // Brand orange – teacher enrolments
+    private const COLOR_BROWN         = '#57330f';          // Brand brown  – grades (dark)
+    private const COLOR_SKY           = '#60b8f4';          // Blue tint    – forum activity
+    private const COLOR_YELLOW_LIGHT  = '#fde84d';          // Yellow tint  – student completion
+    private const COLOR_ORANGE_LIGHT  = '#f7ba6e';          // Orange tint  – parent completion
+
+    // ── Transparent fills (radar / area charts) ───────────────────────────────
+    private const COLOR_PRIMARY_FILL  = 'rgba(1,138,230,0.2)';    // Brand blue @ 20 %
+    private const COLOR_ORANGE_FILL   = 'rgba(241,153,15,0.2)';   // Brand orange @ 20 %
+
+    // ── Category palette (pie / multi-slice doughnuts) ────────────────────────
+    private const COLORS_CATEGORY = [
+        '#018ae6', '#f6d402', '#f1990f', '#57330f',
+        '#60b8f4', '#fde84d', '#c4720a', '#8a5525',
+    ];
+
     /** @var \stdClass */
     private $user;
 
@@ -106,7 +146,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('report_logins_120', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'total')),
-                'borderColor' => '#4F46E5',
+                'borderColor' => self::COLOR_LOGINS,
                 'tension' => 0.4,
                 'fill' => false,
             ]],
@@ -135,7 +175,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('report_enrollments_course', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'total')),
-                'backgroundColor' => '#6366F1',
+                'backgroundColor' => self::COLOR_PRIMARY,
             ]],
         ];
     }
@@ -162,7 +202,7 @@ class report_manager {
             ],
             'datasets' => [[
                 'data' => [$active, $inactive],
-                'backgroundColor' => ['#10B981', '#F87171'],
+                'backgroundColor' => [self::COLOR_ACTIVE, self::COLOR_INACTIVE],
             ]],
         ];
     }
@@ -188,7 +228,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('report_completions_course', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'total')),
-                'backgroundColor' => '#34D399',
+                'backgroundColor' => self::COLOR_COMPLETED,
             ]],
         ];
     }
@@ -215,7 +255,7 @@ class report_manager {
             ],
             'datasets' => [[
                 'data' => [$logged, $never],
-                'backgroundColor' => ['#60A5FA', '#FBBF24'],
+                'backgroundColor' => [self::COLOR_WITH_ACCESS, self::COLOR_NEVER_LOGGED],
             ]],
         ];
     }
@@ -241,7 +281,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('report_new_registrations', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'total')),
-                'borderColor' => '#F59E0B',
+                'borderColor' => self::COLOR_REGISTRATIONS,
                 'tension' => 0.3,
                 'fill' => false,
             ]],
@@ -269,10 +309,7 @@ class report_manager {
             'labels' => array_column($rows, 'category_name'),
             'datasets' => [[
                 'data' => array_values(array_column($rows, 'total')),
-                'backgroundColor' => [
-                    '#6366F1', '#8B5CF6', '#EC4899', '#F43F5E',
-                    '#F97316', '#EAB308', '#22C55E', '#14B8A6',
-                ],
+                'backgroundColor' => self::COLORS_CATEGORY,
             ]],
         ];
     }
@@ -323,7 +360,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('students', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'total')),
-                'backgroundColor' => '#818CF8',
+                'backgroundColor' => self::COLOR_ORANGE_ACCENT,
             ]],
         ];
     }
@@ -362,12 +399,12 @@ class report_manager {
                 [
                     'label' => get_string('completed', 'completion'),
                     'data' => array_values(array_column($rows, 'completed')),
-                    'backgroundColor' => '#34D399',
+                    'backgroundColor' => self::COLOR_COMPLETED,
                 ],
                 [
                     'label' => get_string('inprogress', 'completion'),
                     'data' => array_values(array_column($rows, 'inprogress')),
-                    'backgroundColor' => '#FCD34D',
+                    'backgroundColor' => self::COLOR_INPROGRESS,
                 ],
             ],
         ];
@@ -407,7 +444,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('report_teacher_inactive', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'total')),
-                'backgroundColor' => '#F87171',
+                'backgroundColor' => self::COLOR_INACTIVE,
             ]],
         ];
     }
@@ -441,7 +478,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('report_teacher_grades', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'avg_grade')),
-                'backgroundColor' => '#A78BFA',
+                'backgroundColor' => self::COLOR_BROWN,
             ]],
         ];
     }
@@ -474,7 +511,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('report_teacher_forum', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'posts')),
-                'backgroundColor' => '#38BDF8',
+                'backgroundColor' => self::COLOR_SKY,
             ]],
         ];
     }
@@ -543,7 +580,7 @@ class report_manager {
                     count(array_filter($statuses, fn($s) => $s === 'inprogress')),
                     count(array_filter($statuses, fn($s) => $s === 'notstarted')),
                 ],
-                'backgroundColor' => ['#34D399', '#FCD34D', '#94A3B8'],
+                'backgroundColor' => [self::COLOR_COMPLETED, self::COLOR_INPROGRESS, self::COLOR_NOTSTARTED],
             ]],
         ];
     }
@@ -593,7 +630,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('pct_progress', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'pct')),
-                'backgroundColor' => '#6EE7B7',
+                'backgroundColor' => self::COLOR_ORANGE_LIGHT,
             ]],
         ];
     }
@@ -617,7 +654,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('daysago', 'block_graphreports'),
                 'data' => [$daysago],
-                'backgroundColor' => '#60A5FA',
+                'backgroundColor' => self::COLOR_WITH_ACCESS,
             ]],
         ];
     }
@@ -649,8 +686,8 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('grades', 'grades'),
                 'data' => array_values(array_column($rows, 'grade')),
-                'backgroundColor' => 'rgba(99,102,241,0.2)',
-                'borderColor' => '#6366F1',
+                'backgroundColor' => self::COLOR_PRIMARY_FILL,
+                'borderColor' => self::COLOR_PRIMARY,
             ]],
         ];
     }
@@ -693,7 +730,7 @@ class report_manager {
             ],
             'datasets' => [[
                 'data' => [$done, $pending],
-                'backgroundColor' => ['#34D399', '#FCA5A5'],
+                'backgroundColor' => [self::COLOR_COMPLETED, self::COLOR_PENDING],
             ]],
         ];
     }
@@ -726,7 +763,7 @@ class report_manager {
                     count(array_filter($statuses, fn($s) => $s === 'completed')),
                     count(array_filter($statuses, fn($s) => $s === 'inprogress')),
                 ],
-                'backgroundColor' => ['#34D399', '#FCD34D'],
+                'backgroundColor' => [self::COLOR_COMPLETED, self::COLOR_INPROGRESS],
             ]],
         ];
     }
@@ -771,7 +808,7 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('pct_progress', 'block_graphreports'),
                 'data' => array_values(array_column($rows, 'pct')),
-                'backgroundColor' => '#7DD3FC',
+                'backgroundColor' => self::COLOR_YELLOW_LIGHT,
             ]],
         ];
     }
@@ -798,8 +835,8 @@ class report_manager {
             'datasets' => [[
                 'label' => get_string('grades', 'grades'),
                 'data' => array_values(array_column($rows, 'grade')),
-                'backgroundColor' => 'rgba(167,139,250,0.2)',
-                'borderColor' => '#A78BFA',
+                'backgroundColor' => self::COLOR_ORANGE_FILL,
+                'borderColor' => self::COLOR_BROWN,
             ]],
         ];
     }

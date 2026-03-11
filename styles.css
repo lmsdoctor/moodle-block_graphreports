@@ -23,23 +23,23 @@
 }
 
 .graphreports-header-badge--admin {
-    background: #ede9fe;
-    color: #5b21b6;
+    background: #e6ddd6;  /* brand brown tint */
+    color: #3a2108;       /* brand brown dark  */
 }
 
 .graphreports-header-badge--teacher {
-    background: #dbeafe;
-    color: #1d4ed8;
+    background: #d4eefb;  /* brand blue tint   */
+    color: #015a99;       /* brand blue dark   */
 }
 
 .graphreports-header-badge--parent {
-    background: #fce7f3;
-    color: #9d174d;
+    background: #fde9cc;  /* brand orange tint */
+    color: #7a4b00;       /* brand orange dark */
 }
 
 .graphreports-header-badge--student {
-    background: #d1fae5;
-    color: #065f46;
+    background: #fef9d8;  /* brand yellow tint */
+    color: #6b5a00;       /* brand yellow dark */
 }
 
 .graphreports-kpi-row {
@@ -56,23 +56,23 @@
 }
 
 .graphreports-kpi-card--green {
-    background: #d1fae5;
-    color: #065f46;
+    background: #e5ffad;  /* brand sky-blue tint – charts with data (positive) */
+    color: #5b8500;
 }
 
 .graphreports-kpi-card--red {
-    background: #fee2e2;
-    color: #991b1b;
+    background: #fde9cc;  /* brand orange tint – data points (attention)       */
+    color: #7a4b00;
 }
 
 .graphreports-kpi-card--blue {
-    background: #dbeafe;
-    color: #1e40af;
+    background: #d4eefb;  /* brand blue tint – total charts (primary)           */
+    color: #015a99;
 }
 
 .graphreports-kpi-card--yellow {
-    background: #fef3c7;
-    color: #92400e;
+    background: #fef9d8;  /* brand yellow tint – empty charts (neutral)         */
+    color: #6b5a00;
 }
 
 .graphreports-kpi-value {
