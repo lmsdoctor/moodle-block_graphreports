@@ -30,7 +30,7 @@ class chart_renderer {
     /** @var int */
     private const JSON_FLAGS = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE;
 
-    public function prepare(array $reports, string $role): array {
+    public function prepare(array $reports, string $role, array $sizes = []): array {
         $maxreports = (int) get_config('block_graphreports', 'max_reports');
         if ($maxreports > 0) {
             $reports = array_slice($reports, 0, $maxreports);
@@ -44,11 +44,15 @@ class chart_renderer {
 
         foreach ($reports as $report) {
             if (($report['type'] ?? '') === 'empty') {
-                $charts[] = [
-                    'chart_id' => $report['id'] ?? uniqid('chart_', true),
-                    'chart_title' => $report['title'] ?? get_string('empty_state', 'block_graphreports'),
-                    'has_data' => false,
-                    'chart_data' => '',
+$reportid = $report['id'] ?? uniqid('chart_', true);
+            $colsize = in_array((int)($sizes[$reportid] ?? 6), [6, 12], true)
+                ? (int)($sizes[$reportid] ?? 6) : 6;
+            $charts[] = [
+                'chart_id'    => $reportid,
+                'chart_title' => $report['title'] ?? get_string('empty_state', 'block_graphreports'),
+                'has_data'    => false,
+                'chart_data'  => '',
+                'col_class'   => $colsize === 12 ? 'col-12' : 'col-12 col-md-6',
                 ];
                 continue;
             }
@@ -70,11 +74,15 @@ class chart_renderer {
                 }
             }
 
+            $reportid = $report['id'] ?? uniqid('chart_', true);
+            $colsize = in_array((int)($sizes[$reportid] ?? 6), [6, 12], true)
+                ? (int)($sizes[$reportid] ?? 6) : 6;
             $charts[] = [
-                'chart_id' => $report['id'] ?? uniqid('chart_', true),
+                'chart_id'    => $reportid,
                 'chart_title' => $report['title'] ?? '',
-                'has_data' => $hasdata,
-                'chart_data' => json_encode($config, self::JSON_FLAGS),
+                'has_data'    => $hasdata,
+                'chart_data'  => json_encode($config, self::JSON_FLAGS),
+                'col_class'   => $colsize === 12 ? 'col-12' : 'col-12 col-md-6',
             ];
         }
 

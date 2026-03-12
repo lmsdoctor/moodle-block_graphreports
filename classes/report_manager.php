@@ -74,13 +74,31 @@ class report_manager {
         $this->user = $user;
     }
 
-    public function get_reports_for_role(string $role): array {
-        return match ($role) {
-            'admin' => $this->get_admin_reports(),
+    public function get_reports_for_role(string $role, ?array $allowed = null, array $order = []): array {
+        $reports = match ($role) {
+            'admin'   => $this->get_admin_reports(),
             'teacher' => $this->get_teacher_reports(),
-            'parent' => $this->get_parent_reports(),
-            default => $this->get_student_reports(),
+            'parent'  => $this->get_parent_reports(),
+            default   => $this->get_student_reports(),
         };
+
+        // Filter to only allowed report IDs (skips SQL queries for disabled reports).
+        if ($allowed !== null) {
+            $reports = array_values(array_filter(
+                $reports,
+                static fn($r) => in_array($r['id'], $allowed, true)
+            ));
+        }
+
+        // Apply custom order when provided.
+        if (!empty($order)) {
+            usort($reports, static fn($a, $b) =>
+                (array_search($a['id'], $order, true) ?: PHP_INT_MAX)
+                <=> (array_search($b['id'], $order, true) ?: PHP_INT_MAX)
+            );
+        }
+
+        return $reports;
     }
 
     private function get_admin_reports(): array {
