@@ -1,0 +1,434 @@
+/**
+ * block_graphreports/edit_form
+ *
+ * Hybrid config form AMD module.
+ * Reads the report catalogue from data-catalogue, renders the full accordion UI,
+ * writes all values back to the hidden inputs managed by moodleform.
+ *
+ * Responsibilities:
+ *  1. Render accordion (one section per role) with drag-handle, checkbox, size toggle.
+ *  2. Master role checkbox: enables/disables its child rows.
+ *  3. Indeterminate state on master when some — but not all — reports are checked.
+ *  4. Drag & drop via HTML5 DnD API (no external library).
+ *  5. Size toggle (Half / Full) per report row.
+ *  6. Client-side validation before form submit.
+ *  7. Sync all UI state back to hidden inputs.
+ */
+define([], function() {
+    'use strict';
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /**
+     * Read a hidden input value from the moodleform.
+     * @param {string} name  Input name attribute.
+     * @returns {string}
+     */
+    function getHidden(name) {
+        const el = document.querySelector('input[name="' + name + '"]');
+        return el ? el.value : '';
+    }
+
+    /**
+     * Write a value to a hidden input.
+     * @param {string} name
+     * @param {string|number} value
+     */
+    function setHidden(name, value) {
+        const el = document.querySelector('input[name="' + name + '"]');
+        if (el) {
+            el.value = value;
+        }
+    }
+
+    // ── Accordion builder ─────────────────────────────────────────────────────
+
+    /**
+     * Build the full accordion UI from the catalogue array and inject it into
+     * the #graphreports-config-root container.
+     * @param {Array} catalogue
+     */
+    function buildUI(catalogue) {
+        const root = document.getElementById('graphreports-config-root');
+        if (!root) {
+            return;
+        }
+
+        const accordion = document.createElement('div');
+        accordion.className = 'accordion graphreports-edit-accordion';
+        accordion.id = 'graphreports-accordion';
+
+        catalogue.forEach(function(roleData, roleIndex) {
+            const role = roleData.role;
+            const collapseId = 'graphreports-collapse-' + role;
+
+            // ── Read persisted values from hidden inputs ────────────────────
+            const roleEnabled = getHidden('config_role_' + role) !== '0';
+            const savedOrder  = getHidden('config_order_' + role);
+            const orderedIds  = savedOrder
+                ? savedOrder.split(',').filter(Boolean)
+                : roleData.reports.map(function(r) { return r.id; });
+
+            // Re-order reports array to match saved order.
+            const orderedReports = orderedIds
+                .map(function(id) {
+                    return roleData.reports.find(function(r) { return r.id === id; });
+                })
+                .filter(Boolean);
+            // Append any report not yet in the saved order (new reports added later).
+            roleData.reports.forEach(function(r) {
+                if (!orderedReports.find(function(x) { return x.id === r.id; })) {
+                    orderedReports.push(r);
+                }
+            });
+
+            // ── Accordion item ─────────────────────────────────────────────
+            const item = document.createElement('div');
+            item.className = 'accordion-item graphreports-role-item' + (roleEnabled ? '' : ' graphreports-role-disabled');
+            item.dataset.role = role;
+
+            // Header.
+            item.innerHTML =
+                '<h2 class="accordion-header" id="graphreports-heading-' + role + '">' +
+                  '<div class="accordion-button' + (roleIndex > 0 ? ' collapsed' : '') + '" ' +
+                       'data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" ' +
+                       'aria-expanded="' + (roleIndex === 0 ? 'true' : 'false') + '" ' +
+                       'aria-controls="' + collapseId + '">' +
+                    '<label class="graphreports-role-label" onclick="event.stopPropagation()">' +
+                      '<input type="checkbox" class="graphreports-role-master form-check-input me-2" ' +
+                             'data-role="' + role + '" ' + (roleEnabled ? 'checked' : '') + '>' +
+                      roleData.role_label +
+                    '</label>' +
+                  '</div>' +
+                '</h2>';
+
+            // Collapse body.
+            const collapse = document.createElement('div');
+            collapse.id = collapseId;
+            collapse.className = 'accordion-collapse collapse' + (roleIndex === 0 ? ' show' : '');
+            collapse.setAttribute('aria-labelledby', 'graphreports-heading-' + role);
+            collapse.dataset.bsParent = '#graphreports-accordion';
+
+            const body = document.createElement('div');
+            body.className = 'accordion-body p-2';
+
+            // Order hint.
+            const hint = document.createElement('p');
+            hint.className = 'text-muted small mb-2';
+            hint.textContent = M.util.get_string('config_order_hint', 'block_graphreports');
+            body.appendChild(hint);
+
+            // Report list (sortable).
+            const list = document.createElement('ul');
+            list.className = 'graphreports-report-list list-unstyled mb-0';
+            list.dataset.role = role;
+
+            orderedReports.forEach(function(report) {
+                const reportEnabled = getHidden('config_report_' + role + '_' + report.id) !== '0';
+                const colSize = getHidden('config_size_' + role + '_' + report.id) || '6';
+                list.appendChild(buildReportRow(role, report, reportEnabled, colSize));
+            });
+
+            body.appendChild(list);
+            collapse.appendChild(body);
+            item.appendChild(collapse);
+            accordion.appendChild(item);
+        });
+
+        root.appendChild(accordion);
+    }
+
+    /**
+     * Build a single draggable report row.
+     * @param {string} role
+     * @param {{id: string, label: string}} report
+     * @param {boolean} enabled
+     * @param {string} colSize  '6' or '12'
+     * @returns {HTMLElement}
+     */
+    function buildReportRow(role, report, enabled, colSize) {
+        const li = document.createElement('li');
+        li.className = 'graphreports-report-row d-flex align-items-center gap-2 p-2 mb-1 border rounded' +
+                       (enabled ? '' : ' graphreports-report-disabled');
+        li.draggable = true;
+        li.dataset.reportId = report.id;
+
+        li.innerHTML =
+            // Drag handle.
+            '<span class="graphreports-drag-handle text-muted me-1" title="Drag to reorder" ' +
+                  'style="cursor:grab;font-size:1.1rem;">&#8597;</span>' +
+            // Report checkbox.
+            '<div class="form-check mb-0 flex-grow-1">' +
+              '<input type="checkbox" class="form-check-input graphreports-report-check" ' +
+                     'id="grcheck-' + role + '-' + report.id + '" ' +
+                     'data-role="' + role + '" data-report="' + report.id + '" ' +
+                     (enabled ? 'checked' : '') + '>' +
+              '<label class="form-check-label" for="grcheck-' + role + '-' + report.id + '">' +
+                report.label +
+              '</label>' +
+            '</div>' +
+            // Size toggle.
+            '<div class="graphreports-size-toggle btn-group btn-group-sm" ' +
+                 'role="group" aria-label="Column size"' +
+                 (enabled ? '' : ' style="opacity:.4;pointer-events:none"') + '>' +
+              '<input type="radio" class="btn-check" name="grsize-' + role + '-' + report.id + '" ' +
+                     'id="grsize-' + role + '-' + report.id + '-6" value="6" ' +
+                     'data-role="' + role + '" data-report="' + report.id + '" ' +
+                     (colSize !== '12' ? 'checked' : '') + '>' +
+              '<label class="btn btn-outline-secondary" for="grsize-' + role + '-' + report.id + '-6">' +
+                '&#9646; Half' +
+              '</label>' +
+              '<input type="radio" class="btn-check" name="grsize-' + role + '-' + report.id + '" ' +
+                     'id="grsize-' + role + '-' + report.id + '-12" value="12" ' +
+                     'data-role="' + role + '" data-report="' + report.id + '" ' +
+                     (colSize === '12' ? 'checked' : '') + '>' +
+              '<label class="btn btn-outline-secondary" for="grsize-' + role + '-' + report.id + '-12">' +
+                '&#9646;&#9646; Full' +
+              '</label>' +
+            '</div>';
+
+        return li;
+    }
+
+    // ── Master checkbox (role enable/disable) ────────────────────────────────
+
+    function initMasterCheckboxes() {
+        document.querySelectorAll('.graphreports-role-master').forEach(function(master) {
+            master.addEventListener('change', function() {
+                const role = master.dataset.role;
+                const enabled = master.checked;
+                setHidden('config_role_' + role, enabled ? '1' : '0');
+
+                const item = master.closest('.graphreports-role-item');
+                if (item) {
+                    item.classList.toggle('graphreports-role-disabled', !enabled);
+                }
+
+                // Enable / disable all report checkboxes in this role.
+                document.querySelectorAll('.graphreports-report-check[data-role="' + role + '"]')
+                    .forEach(function(cb) {
+                        cb.disabled = !enabled;
+                    });
+            });
+        });
+    }
+
+    // ── Report checkboxes ────────────────────────────────────────────────────
+
+    function initReportCheckboxes() {
+        document.querySelectorAll('.graphreports-report-check').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                const role   = cb.dataset.role;
+                const report = cb.dataset.report;
+                const enabled = cb.checked;
+
+                setHidden('config_report_' + role + '_' + report, enabled ? '1' : '0');
+
+                const row = cb.closest('.graphreports-report-row');
+                if (row) {
+                    row.classList.toggle('graphreports-report-disabled', !enabled);
+                    const sizeToggle = row.querySelector('.graphreports-size-toggle');
+                    if (sizeToggle) {
+                        sizeToggle.style.opacity = enabled ? '' : '0.4';
+                        sizeToggle.style.pointerEvents = enabled ? '' : 'none';
+                    }
+                }
+
+                updateMasterState(role);
+            });
+        });
+    }
+
+    /**
+     * Set master checkbox to checked / unchecked / indeterminate
+     * based on its children's state.
+     * @param {string} role
+     */
+    function updateMasterState(role) {
+        const master = document.querySelector('.graphreports-role-master[data-role="' + role + '"]');
+        if (!master) {
+            return;
+        }
+        const checks = Array.from(
+            document.querySelectorAll('.graphreports-report-check[data-role="' + role + '"]')
+        );
+        const total   = checks.length;
+        const checked = checks.filter(function(c) { return c.checked; }).length;
+
+        if (checked === 0) {
+            master.indeterminate = false;
+            master.checked = false;
+            setHidden('config_role_' + role, '0');
+        } else if (checked === total) {
+            master.indeterminate = false;
+            master.checked = true;
+            setHidden('config_role_' + role, '1');
+        } else {
+            master.indeterminate = true;
+            master.checked = false; // visual only — still treated as enabled
+            setHidden('config_role_' + role, '1');
+        }
+    }
+
+    // ── Size toggles ─────────────────────────────────────────────────────────
+
+    function initSizeToggles() {
+        document.querySelectorAll('.graphreports-size-toggle input[type="radio"]').forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                if (radio.checked) {
+                    setHidden('config_size_' + radio.dataset.role + '_' + radio.dataset.report, radio.value);
+                }
+            });
+        });
+    }
+
+    // ── Drag & Drop (HTML5 native) ────────────────────────────────────────────
+
+    let dragSrc = null;
+
+    function initDragAndDrop() {
+        document.querySelectorAll('.graphreports-report-list').forEach(function(list) {
+            list.addEventListener('dragstart', function(e) {
+                dragSrc = e.target.closest('.graphreports-report-row');
+                if (dragSrc) {
+                    dragSrc.classList.add('graphreports-dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+            });
+
+            list.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const target = e.target.closest('.graphreports-report-row');
+                if (target && dragSrc && target !== dragSrc && target.parentNode === dragSrc.parentNode) {
+                    const rect = target.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        target.parentNode.insertBefore(dragSrc, target);
+                    } else {
+                        target.parentNode.insertBefore(dragSrc, target.nextSibling);
+                    }
+                }
+            });
+
+            list.addEventListener('dragend', function() {
+                if (dragSrc) {
+                    dragSrc.classList.remove('graphreports-dragging');
+                }
+                dragSrc = null;
+                // Serialize new order for every list that was affected.
+                document.querySelectorAll('.graphreports-report-list').forEach(serializeOrder);
+            });
+        });
+    }
+
+    /**
+     * Write the current visual order of a list to the hidden order input.
+     * @param {HTMLElement} list
+     */
+    function serializeOrder(list) {
+        const role = list.dataset.role;
+        const ids = Array.from(list.querySelectorAll('.graphreports-report-row'))
+            .map(function(row) { return row.dataset.reportId; });
+        setHidden('config_order_' + role, ids.join(','));
+    }
+
+    // ── Client-side validation ────────────────────────────────────────────────
+
+    function initFormValidation() {
+        const form = document.querySelector('#graphreports-config-root')
+            ? document.querySelector('#graphreports-config-root').closest('form')
+            : null;
+        if (!form) {
+            return;
+        }
+
+        form.addEventListener('submit', function(e) {
+            const roles = ['admin', 'teacher', 'parent', 'student'];
+            let anyRole = false;
+            let valid = true;
+
+            // Clear previous inline errors.
+            document.querySelectorAll('.graphreports-inline-error').forEach(function(el) {
+                el.remove();
+            });
+
+            roles.forEach(function(role) {
+                const roleEnabled = getHidden('config_role_' + role) !== '0';
+                if (roleEnabled) {
+                    anyRole = true;
+                }
+
+                const checks = Array.from(
+                    document.querySelectorAll('.graphreports-report-check[data-role="' + role + '"]')
+                );
+                const anyReport = checks.some(function(c) { return c.checked; });
+
+                if (roleEnabled && !anyReport) {
+                    valid = false;
+                    showInlineError(
+                        '.graphreports-role-item[data-role="' + role + '"]',
+                        M.util.get_string('error_min_one_report', 'block_graphreports')
+                    );
+                }
+            });
+
+            if (!anyRole) {
+                valid = false;
+                showInlineError('#graphreports-accordion', M.util.get_string('error_min_one_role', 'block_graphreports'));
+            }
+
+            if (!valid) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    /**
+     * Insert an inline error message after a selector.
+     * @param {string} selector
+     * @param {string} message
+     */
+    function showInlineError(selector, message) {
+        const target = document.querySelector(selector);
+        if (!target) {
+            return;
+        }
+        const span = document.createElement('div');
+        span.className = 'text-danger small mt-1 graphreports-inline-error';
+        span.textContent = message;
+        target.parentNode.insertBefore(span, target.nextSibling);
+    }
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
+    return {
+        init: function() {
+            const catalogueEl = document.getElementById('graphreports-catalogue');
+            if (!catalogueEl) {
+                return;
+            }
+
+            let catalogue;
+            try {
+                catalogue = JSON.parse(catalogueEl.dataset.catalogue || '[]');
+            } catch (e) {
+                // eslint-disable-next-line no-console
+                console.error('[block_graphreports] edit_form: failed to parse catalogue', e);
+                return;
+            }
+
+            buildUI(catalogue);
+            initMasterCheckboxes();
+            initReportCheckboxes();
+            initSizeToggles();
+            initDragAndDrop();
+            initFormValidation();
+
+            // Sync initial indeterminate states.
+            catalogue.forEach(function(roleData) {
+                updateMasterState(roleData.role);
+            });
+        }
+    };
+});
