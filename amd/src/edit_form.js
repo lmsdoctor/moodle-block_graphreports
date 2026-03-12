@@ -50,6 +50,7 @@ define([], function() {
      */
     function buildUI(catalogue) {
         const root = document.getElementById('graphreports-config-root');
+        alert(root);
         if (!root) {
             return;
         }
@@ -404,31 +405,52 @@ define([], function() {
 
     return {
         init: function() {
-            const catalogueEl = document.getElementById('graphreports-catalogue');
-            if (!catalogueEl) {
-                return;
-            }
+            // The block config form may be injected into the DOM via AJAX/modal
+            // after this AMD call fires. Poll briefly for the catalogue element.
+            var attempts = 0;
+            var maxAttempts = 20; // 20 x 100 ms = 2 s max wait
 
-            let catalogue;
-            try {
-                catalogue = JSON.parse(catalogueEl.dataset.catalogue || '[]');
-            } catch (e) {
+            function tryInit() {
+                var catalogueEl = document.getElementById('graphreports-catalogue');
+
+                if (!catalogueEl) {
+                    attempts++;
+                    if (attempts < maxAttempts) {
+                        setTimeout(tryInit, 100);
+                    } else {
+                        // eslint-disable-next-line no-console
+                        console.warn('[block_graphreports] edit_form: #graphreports-catalogue not found after ' +
+                            (maxAttempts * 100) + 'ms — AMD did not initialise.');
+                    }
+                    return;
+                }
+
+                var catalogue;
+                try {
+                    catalogue = JSON.parse(catalogueEl.dataset.catalogue || '[]');
+                } catch (e) {
+                    // eslint-disable-next-line no-console
+                    console.error('[block_graphreports] edit_form: failed to parse catalogue', e);
+                    return;
+                }
+
                 // eslint-disable-next-line no-console
-                console.error('[block_graphreports] edit_form: failed to parse catalogue', e);
-                return;
+                console.log('[block_graphreports] edit_form: init OK — roles:',
+                    catalogue.map(function(r) { return r.role; }));
+
+                buildUI(catalogue);
+                initMasterCheckboxes();
+                initReportCheckboxes();
+                initSizeToggles();
+                initDragAndDrop();
+                initFormValidation();
+
+                catalogue.forEach(function(roleData) {
+                    updateMasterState(roleData.role);
+                });
             }
 
-            buildUI(catalogue);
-            initMasterCheckboxes();
-            initReportCheckboxes();
-            initSizeToggles();
-            initDragAndDrop();
-            initFormValidation();
-
-            // Sync initial indeterminate states.
-            catalogue.forEach(function(roleData) {
-                updateMasterState(roleData.role);
-            });
+            tryInit();
         }
     };
 });
