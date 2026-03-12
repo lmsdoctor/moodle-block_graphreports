@@ -31,10 +31,8 @@ class chart_renderer {
     private const JSON_FLAGS = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE;
 
     public function prepare(array $reports, string $role, array $sizes = []): array {
-        $maxreports = (int) get_config('block_graphreports', 'max_reports');
-        if ($maxreports > 0) {
-            $reports = array_slice($reports, 0, $maxreports);
-        }
+        // Note: max_reports cap removed — report visibility is controlled by
+        // the block instance config (edit_form.php / get_allowed_reports).
 
         $charts = [];
         $defaultoptions = [

@@ -92,10 +92,15 @@ class report_manager {
 
         // Apply custom order when provided.
         if (!empty($order)) {
-            usort($reports, static fn($a, $b) =>
-                (array_search($a['id'], $order, true) ?: PHP_INT_MAX)
-                <=> (array_search($b['id'], $order, true) ?: PHP_INT_MAX)
-            );
+            usort($reports, static function($a, $b) use ($order) {
+                $posA = array_search($a['id'], $order, true);
+                $posB = array_search($b['id'], $order, true);
+                // array_search returns 0 for the first element — must use !== false
+                // to distinguish "found at index 0" from "not found" (false).
+                $posA = $posA !== false ? $posA : PHP_INT_MAX;
+                $posB = $posB !== false ? $posB : PHP_INT_MAX;
+                return $posA <=> $posB;
+            });
         }
 
         return $reports;
