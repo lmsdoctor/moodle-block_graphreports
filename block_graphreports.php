@@ -94,17 +94,7 @@ class block_graphreports extends block_base {
      * Returns null when no config set (= allow all).
      */
     private function get_allowed_reports(stdClass $cfg, string $role): ?array {
-        static $reportids = [
-            'admin'   => ['logins_120','enrollments_course','active_vs_inactive',
-                          'completions_course','never_logged','new_registrations','enrollments_category'],
-            'teacher' => ['teacher_enrollments','teacher_completion','teacher_inactive',
-                          'teacher_grades','teacher_forum'],
-            'parent'  => ['parent_courses','parent_completion','parent_lastlogin',
-                          'parent_grades','parent_pending'],
-            'student' => ['student_courses','student_completion','student_grades'],
-        ];
-
-        $all = $reportids[$role] ?? [];
+        $all = \block_graphreports\report_catalogue::ids($role);
         $allowed = [];
         foreach ($all as $rid) {
             $key = 'report_' . $role . '_' . $rid;
@@ -132,18 +122,8 @@ class block_graphreports extends block_base {
      * Returns [reportid => colsize] map for $role from instance config.
      */
     private function get_report_sizes(stdClass $cfg, string $role): array {
-        static $reportids = [
-            'admin'   => ['logins_120','enrollments_course','active_vs_inactive',
-                          'completions_course','never_logged','new_registrations','enrollments_category'],
-            'teacher' => ['teacher_enrollments','teacher_completion','teacher_inactive',
-                          'teacher_grades','teacher_forum'],
-            'parent'  => ['parent_courses','parent_completion','parent_lastlogin',
-                          'parent_grades','parent_pending'],
-            'student' => ['student_courses','student_completion','student_grades'],
-        ];
-
         $sizes = [];
-        foreach ($reportids[$role] ?? [] as $rid) {
+        foreach (\block_graphreports\report_catalogue::ids($role) as $rid) {
             $raw = (int) ($cfg->{'size_' . $role . '_' . $rid} ?? 6);
             $sizes[$rid] = in_array($raw, [6, 12], true) ? $raw : 6;
         }

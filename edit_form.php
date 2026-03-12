@@ -29,37 +29,8 @@ defined('MOODLE_INTERNAL') || die();
 
 class block_graphreports_edit_form extends block_edit_form {
 
-    /** @var array<string, array<string, string>> Report catalogue [role => [id => langkey]] */
-    private const REPORTS = [
-        'admin' => [
-            'logins_120'           => 'report_logins_120',
-            'enrollments_course'   => 'report_enrollments_course',
-            'active_vs_inactive'   => 'report_active_inactive',
-            'completions_course'   => 'report_completions_course',
-            'never_logged'         => 'report_never_logged',
-            'new_registrations'    => 'report_new_registrations',
-            'enrollments_category' => 'report_enrollments_category',
-        ],
-        'teacher' => [
-            'teacher_enrollments'  => 'report_teacher_enrollments',
-            'teacher_completion'   => 'report_teacher_completion',
-            'teacher_inactive'     => 'report_teacher_inactive',
-            'teacher_grades'       => 'report_teacher_grades',
-            'teacher_forum'        => 'report_teacher_forum',
-        ],
-        'parent' => [
-            'parent_courses'       => 'report_parent_courses',
-            'parent_completion'    => 'report_parent_completion',
-            'parent_lastlogin'     => 'report_parent_lastlogin',
-            'parent_grades'        => 'report_parent_grades',
-            'parent_pending'       => 'report_parent_pending',
-        ],
-        'student' => [
-            'student_courses'      => 'report_student_courses',
-            'student_completion'   => 'report_student_completion',
-            'student_grades'       => 'report_student_grades',
-        ],
-    ];
+    /** Single source of truth: \block_graphreports\report_catalogue::REPORTS */
+    private const REPORTS = \block_graphreports\report_catalogue::REPORTS;
 
     protected function specific_definition($mform): void {
 
