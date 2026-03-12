@@ -122,11 +122,58 @@
 }
 
 @media (max-width: 768px) {
-    .graphreports-grid--2col {
-        grid-template-columns: 1fr;
-    }
-
     .graphreports-kpi-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+}
+
+/* ── Instance config form ────────────────────────────────────────────────── */
+
+.graphreports-edit-accordion .accordion-button {
+    padding: 0.6rem 1rem;
+    background: #f8f9fa;
+    gap: 0.5rem;
+}
+
+.graphreports-edit-accordion .accordion-button:not(.collapsed) {
+    background: #e9f4fd;
+    box-shadow: none;
+}
+
+.graphreports-role-label {
+    font-weight: 600;
+    cursor: pointer;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.graphreports-role-item.graphreports-role-disabled .accordion-button {
+    opacity: 0.55;
+}
+
+.graphreports-report-row {
+    background: #fff;
+    transition: background 0.15s;
+    user-select: none;
+}
+
+.graphreports-report-row.graphreports-report-disabled {
+    opacity: 0.45;
+}
+
+.graphreports-report-row.graphreports-dragging {
+    opacity: 0.5;
+    background: #e9f4fd;
+    border-style: dashed !important;
+}
+
+.graphreports-drag-handle:hover {
+    color: #018ae6;
+}
+
+.graphreports-size-toggle .btn-outline-secondary {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
 }
