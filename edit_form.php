@@ -62,9 +62,6 @@ class block_graphreports_edit_form extends block_edit_form {
     ];
 
     protected function specific_definition($mform): void {
-        global $PAGE;
-
-        $PAGE->requires->js_call_amd('block_graphreports/edit_form', 'init');
 
         // ── Section header ──────────────────────────────────────────────────
         $mform->addElement(
@@ -129,6 +126,12 @@ class block_graphreports_edit_form extends block_edit_form {
         );
 
         $mform->addElement('html', '</div>'); // close #graphreports-config-root
+
+        // Inline require() — works in modal/fragment contexts where $PAGE->requires
+        // may not be flushed to the browser.
+        $mform->addElement('html',
+            '<script>require(["block_graphreports/edit_form"],function(m){m.init();});</script>'
+        );
     }
 
     /**
