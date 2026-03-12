@@ -81,3 +81,17 @@ $string['report_parent_pending'] = 'My child\'s pending activities';
 $string['report_student_courses'] = 'My courses';
 $string['report_student_completion'] = 'My completion progress';
 $string['report_student_grades'] = 'My grades';
+
+// Instance config form.
+$string['config_roles_header']    = 'Roles & Reports Configuration';
+$string['config_role_admin']      = 'Enable Admin Dashboard';
+$string['config_role_teacher']    = 'Enable Teacher Dashboard';
+$string['config_role_parent']     = 'Enable Parent Dashboard';
+$string['config_role_student']    = 'Enable Student Dashboard';
+$string['size_half']              = 'Half';
+$string['size_full']              = 'Full width';
+$string['config_order_hint']      = 'Drag rows to reorder reports';
+$string['error_min_one_role']     = 'At least one role must be enabled.';
+$string['error_min_one_report']   = 'At least one report must be enabled for this role.';
+$string['error_invalid_order']    = 'Invalid report order data.';
+$string['error_invalid_size']     = 'Invalid column size value.';
