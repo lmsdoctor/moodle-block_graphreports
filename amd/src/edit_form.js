@@ -84,33 +84,34 @@ define([], function() {
 
             // ── Accordion item ─────────────────────────────────────────────
             const item = document.createElement('div');
-            item.className = 'accordion-item graphreports-role-item' + (roleEnabled ? '' : ' graphreports-role-disabled');
+            item.className = 'card graphreports-role-item ml-3 mb-2' + (roleEnabled ? '' : ' graphreports-role-disabled');
             item.dataset.role = role;
 
             // Header.
             item.innerHTML =
-                '<h2 class="accordion-header" id="graphreports-heading-' + role + '">' +
-                  '<div class="accordion-button' + (roleIndex > 0 ? ' collapsed' : '') + '" ' +
-                       'data-bs-toggle="collapse" data-bs-target="#' + collapseId + '" ' +
-                       'aria-expanded="' + (roleIndex === 0 ? 'true' : 'false') + '" ' +
-                       'aria-controls="' + collapseId + '">' +
-                    '<label class="graphreports-role-label" onclick="event.stopPropagation()">' +
-                      '<input type="checkbox" class="graphreports-role-master form-check-input me-2" ' +
-                             'data-role="' + role + '" ' + (roleEnabled ? 'checked' : '') + '>' +
-                      roleData.role_label +
-                    '</label>' +
+                '<div class="card-header d-flex" id="graphreports-heading-' + role + '">' +
+                  '<div class="form-check form-check-inline mr-0">' +
+                    '<input type="checkbox" class="form-check-input graphreports-role-master" ' +
+                           'id="grmaster-' + role + '" ' +
+                           'data-role="' + role + '" ' + (roleEnabled ? 'checked' : '') + '>' +
                   '</div>' +
-                '</h2>';
+                  '<button class="btn btn-link btn-block text-left graphreports-role-label" type="button" ' +
+                          'data-toggle="collapse" data-target="#' + collapseId + '" ' +
+                          'aria-expanded="' + (roleIndex === 0 ? 'true' : 'false') + '" ' +
+                          'aria-controls="' + collapseId + '">' +
+                    roleData.role_label +
+                  '</button>' +
+                '</div>';
 
             // Collapse body.
             const collapse = document.createElement('div');
             collapse.id = collapseId;
-            collapse.className = 'accordion-collapse collapse' + (roleIndex === 0 ? ' show' : '');
+            collapse.className = 'collapse' + (roleIndex === 0 ? ' show' : '');
             collapse.setAttribute('aria-labelledby', 'graphreports-heading-' + role);
-            collapse.dataset.bsParent = '#graphreports-accordion';
+            collapse.setAttribute('data-parent', '#graphreports-accordion');
 
             const body = document.createElement('div');
-            body.className = 'accordion-body p-2';
+            body.className = 'card-body p-2';
 
             // Order hint.
             const hint = document.createElement('p');
@@ -155,15 +156,15 @@ define([], function() {
 
         li.innerHTML =
             // Drag handle.
-            '<span class="graphreports-drag-handle text-muted me-1" title="Drag to reorder" ' +
-                  'style="cursor:grab;font-size:1.1rem;">&#8597;</span>' +
+            '<span class="graphreports-drag-handle text-muted me-2" title="Drag to reorder" ' +
+                  'style="cursor:grab;font-size:1.1rem; width: 20px;text-align: center;">&#8597;</span>' +
             // Report checkbox.
-            '<div class="form-check mb-0 flex-grow-1">' +
+            '<div class="form-check mb-0 flex-grow-1 d-flex align-items-center">' +
               '<input type="checkbox" class="form-check-input graphreports-report-check" ' +
                      'id="grcheck-' + role + '-' + report.id + '" ' +
                      'data-role="' + role + '" data-report="' + report.id + '" ' +
                      (enabled ? 'checked' : '') + '>' +
-              '<label class="form-check-label" for="grcheck-' + role + '-' + report.id + '">' +
+              '<label class="form-check-label line-height-3" for="grcheck-' + role + '-' + report.id + '">' +
                 report.label +
               '</label>' +
             '</div>' +
@@ -171,20 +172,24 @@ define([], function() {
             '<div class="graphreports-size-toggle btn-group btn-group-sm" ' +
                  'role="group" aria-label="Column size"' +
                  (enabled ? '' : ' style="opacity:.4;pointer-events:none"') + '>' +
-              '<input type="radio" class="btn-check" name="grsize-' + role + '-' + report.id + '" ' +
-                     'id="grsize-' + role + '-' + report.id + '-6" value="6" ' +
-                     'data-role="' + role + '" data-report="' + report.id + '" ' +
-                     (colSize !== '12' ? 'checked' : '') + '>' +
-              '<label class="btn btn-outline-secondary" for="grsize-' + role + '-' + report.id + '-6">' +
-                '&#9646; Half' +
-              '</label>' +
-              '<input type="radio" class="btn-check" name="grsize-' + role + '-' + report.id + '" ' +
-                     'id="grsize-' + role + '-' + report.id + '-12" value="12" ' +
-                     'data-role="' + role + '" data-report="' + report.id + '" ' +
-                     (colSize === '12' ? 'checked' : '') + '>' +
-              '<label class="btn btn-outline-secondary" for="grsize-' + role + '-' + report.id + '-12">' +
-                '&#9646;&#9646; Full' +
-              '</label>' +
+                '<button type="button" class="btn btn-primary position-relative d-flex align-items-center justify-content-center' + (colSize !== '12' ? ' active' : '') + '" style="width: auto;">' +
+                    '<label class="z-index-0 m-0" for="grsize-' + role + '-' + report.id + '-6" style="left: 0; right: 0;">' +
+                        '&#9646; Half' +
+                    '</label>' +
+                    '<input type="radio" class="btn-check z-index-1 position-absolute" name="grsize-' + role + '-' + report.id + '" ' +
+                            'id="grsize-' + role + '-' + report.id + '-6" value="6" ' +
+                            'data-role="' + role + '" data-report="' + report.id + '" ' +
+                            (colSize !== '12' ? 'checked' : '') + ' style="opacity: 0;">' +
+                '</button>' +
+                '<button type="button" class="btn btn-primary position-relative d-flex align-items-center justify-content-center' + (colSize === '12' ? ' active' : '') + '" style="width: auto;">' +
+                    '<label class="z-index-0 m-0" for="grsize-' + role + '-' + report.id + '-12" style="left: 0; right: 0;">' +
+                        '&#9646;&#9646; Full' +
+                    '</label>' +
+                    '<input type="radio" class="btn-check z-index-1 position-absolute" name="grsize-' + role + '-' + report.id + '" ' +
+                            'id="grsize-' + role + '-' + report.id + '-12" value="12" ' +
+                            'data-role="' + role + '" data-report="' + report.id + '" ' +
+                            (colSize === '12' ? 'checked' : '') + ' style="opacity: 0;">' +
+                '</button>' +
             '</div>';
 
         return li;
@@ -277,6 +282,15 @@ define([], function() {
             radio.addEventListener('change', function() {
                 if (radio.checked) {
                     setHidden('config_size_' + radio.dataset.role + '_' + radio.dataset.report, radio.value);
+
+                    // Toggle .active on the btn wrapper divs.
+                    var toggle = radio.closest('.graphreports-size-toggle');
+                    if (toggle) {
+                        toggle.querySelectorAll('.btn').forEach(function(btn) {
+                            btn.classList.remove('active');
+                        });
+                        radio.closest('.btn').classList.add('active');
+                    }
                 }
             });
         });
