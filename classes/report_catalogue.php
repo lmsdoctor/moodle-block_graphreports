@@ -55,6 +55,11 @@ class report_catalogue {
             'teacher_inactive'     => 'report_teacher_inactive',
             'teacher_grades'       => 'report_teacher_grades',
             'teacher_forum'        => 'report_teacher_forum',
+            'teacher_learner'      => 'report_teacher_learner',
+            'teacher_activity_completions' => 'report_teacher_activity_completions',
+            'teacher_badges'       => 'report_teacher_badges',
+            'teacher_scorm_status' => 'report_teacher_scorm_status',
+            'teacher_analytics'    => 'report_teacher_analytics',
         ],
         'parent' => [
             'parent_courses'       => 'report_parent_courses',
@@ -62,6 +67,11 @@ class report_catalogue {
             'parent_lastlogin'     => 'report_parent_lastlogin',
             'parent_grades'        => 'report_parent_grades',
             'parent_pending'       => 'report_parent_pending',
+            'parent_grades_by_course' => 'report_parent_grades_by_course',
+            'parent_completion_criteria' => 'report_parent_completion_criteria',
+            'parent_time_spent'    => 'report_parent_time_spent',
+            'parent_recent_logins' => 'report_parent_recent_logins',
+            'parent_badges'        => 'report_parent_badges',
         ],
         'student' => [
             'student_courses'      => 'report_student_courses',

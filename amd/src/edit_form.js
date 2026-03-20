@@ -14,8 +14,48 @@
  *  6. Client-side validation before form submit.
  *  7. Sync all UI state back to hidden inputs.
  */
-define([], function() {
+define(["core/str"], function(MoodleStrings) {
     'use strict';
+
+    // ── Module state ──────────────────────────────────────────────────────────
+    var moduleStrings = {};  // Strings loaded asynchronously
+
+    // ── String loading ────────────────────────────────────────────────────────
+
+    /**
+     * Load required language strings asynchronously.
+     * @returns {Promise}
+     */
+    function loadStrings() {
+        var stringKeys = [
+            'config_order_hint',
+            'error_min_one_report',
+            'error_min_one_role',
+        ];
+
+        var stringsToLoad = stringKeys.map(function(key) {
+            return { key: key, component: 'block_graphreports' };
+        });
+
+        return MoodleStrings.get_strings(stringsToLoad).then(function(loadedStrings) {
+            stringKeys.forEach(function(key, index) {
+                moduleStrings[key] = loadedStrings[index];
+            });
+            return moduleStrings;
+        }).catch(function(error) {
+            console.error('[block_graphreports] edit_form: Failed to load strings', error);
+            throw error;
+        });
+    }
+
+    /**
+     * Get a string from the loaded module strings.
+     * @param {string} key
+     * @returns {string}
+     */
+    function getString(key) {
+        return moduleStrings[key] || key;
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -116,7 +156,7 @@ define([], function() {
             // Order hint.
             const hint = document.createElement('p');
             hint.className = 'text-muted small mb-2';
-            hint.textContent = M.util.get_string('config_order_hint', 'block_graphreports');
+            hint.textContent = getString('config_order_hint');
             body.appendChild(hint);
 
             // Report list (sortable).
@@ -382,14 +422,14 @@ define([], function() {
                     valid = false;
                     showInlineError(
                         '.graphreports-role-item[data-role="' + role + '"]',
-                        M.util.get_string('error_min_one_report', 'block_graphreports')
+                        getString('error_min_one_report')
                     );
                 }
             });
 
             if (!anyRole) {
                 valid = false;
-                showInlineError('#graphreports-accordion', M.util.get_string('error_min_one_role', 'block_graphreports'));
+                showInlineError('#graphreports-accordion', getString('error_min_one_role'));
             }
 
             if (!valid) {
@@ -417,53 +457,59 @@ define([], function() {
     // ── Public API ────────────────────────────────────────────────────────────
 
     return {
-        init: function() {
-            // The block config form may be injected into the DOM via AJAX/modal
-            // after this AMD call fires. Poll briefly for the catalogue element.
-            var attempts = 0;
-            var maxAttempts = 20; // 20 x 100 ms = 2 s max wait
+        init: function () {
+            // Load strings first, then initialize the form.
+            loadStrings().then(function() {
+                // The block config form may be injected into the DOM via AJAX/modal
+                // after this AMD call fires. Poll briefly for the catalogue element.
+                var attempts = 0;
+                var maxAttempts = 20; // 20 x 100 ms = 2 s max wait
 
-            function tryInit() {
-                var catalogueEl = document.getElementById('graphreports-catalogue');
+                function tryInit() {
+                    var catalogueEl = document.getElementById('graphreports-catalogue');
 
-                if (!catalogueEl) {
-                    attempts++;
-                    if (attempts < maxAttempts) {
-                        setTimeout(tryInit, 100);
-                    } else {
-                        // eslint-disable-next-line no-console
-                        console.warn('[block_graphreports] edit_form: #graphreports-catalogue not found after ' +
-                            (maxAttempts * 100) + 'ms — AMD did not initialise.');
+                    if (!catalogueEl) {
+                        attempts++;
+                        if (attempts < maxAttempts) {
+                            setTimeout(tryInit, 100);
+                        } else {
+                            // eslint-disable-next-line no-console
+                            console.warn('[block_graphreports] edit_form: #graphreports-catalogue not found after ' +
+                                (maxAttempts * 100) + 'ms — AMD did not initialise.');
+                        }
+                        return;
                     }
-                    return;
-                }
 
-                var catalogue;
-                try {
-                    catalogue = JSON.parse(catalogueEl.dataset.catalogue || '[]');
-                } catch (e) {
+                    var catalogue;
+                    try {
+                        catalogue = JSON.parse(catalogueEl.dataset.catalogue || '[]');
+                    } catch (e) {
+                        // eslint-disable-next-line no-console
+                        console.error('[block_graphreports] edit_form: failed to parse catalogue', e);
+                        return;
+                    }
+
                     // eslint-disable-next-line no-console
-                    console.error('[block_graphreports] edit_form: failed to parse catalogue', e);
-                    return;
+                    console.log('[block_graphreports] edit_form: init OK — roles:',
+                        catalogue.map(function(r) { return r.role; }));
+
+                    buildUI(catalogue);
+                    initMasterCheckboxes();
+                    initReportCheckboxes();
+                    initSizeToggles();
+                    initDragAndDrop();
+                    initFormValidation();
+
+                    catalogue.forEach(function(roleData) {
+                        updateMasterState(roleData.role);
+                    });
                 }
 
+                tryInit();
+            }).catch(function(error) {
                 // eslint-disable-next-line no-console
-                console.log('[block_graphreports] edit_form: init OK — roles:',
-                    catalogue.map(function(r) { return r.role; }));
-
-                buildUI(catalogue);
-                initMasterCheckboxes();
-                initReportCheckboxes();
-                initSizeToggles();
-                initDragAndDrop();
-                initFormValidation();
-
-                catalogue.forEach(function(roleData) {
-                    updateMasterState(roleData.role);
-                });
-            }
-
-            tryInit();
+                console.error('[block_graphreports] edit_form: Failed to initialize due to string loading error', error);
+            });
         }
     };
 });

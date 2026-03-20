@@ -42,7 +42,7 @@ class chart_renderer {
 
         foreach ($reports as $report) {
             if (($report['type'] ?? '') === 'empty') {
-$reportid = $report['id'] ?? uniqid('chart_', true);
+            $reportid = $report['id'] ?? uniqid('chart_', true);
             $colsize = in_array((int)($sizes[$reportid] ?? 6), [6, 12], true)
                 ? (int)($sizes[$reportid] ?? 6) : 6;
             $charts[] = [

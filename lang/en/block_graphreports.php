@@ -57,6 +57,11 @@ $string['kpi_total_charts'] = 'Total charts';
 $string['kpi_charts_with_data'] = 'Charts with data';
 $string['kpi_empty_charts'] = 'Empty charts';
 $string['kpi_data_points'] = 'Data points';
+$string['logins'] = 'Logins';
+$string['low'] = 'Low';
+$string['medium'] = 'Medium';
+$string['high'] = 'High';
+$string['critical'] = 'Critical';
 
 $string['report_logins_120'] = 'Logins - Last 120 days';
 $string['report_enrollments_course'] = 'Enrollments per course';
@@ -77,6 +82,22 @@ $string['report_parent_completion'] = 'My child\'s completion (%)';
 $string['report_parent_lastlogin'] = 'Last login';
 $string['report_parent_grades'] = 'My child\'s grades';
 $string['report_parent_pending'] = 'My child\'s pending activities';
+$string['report_parent_grades_by_course'] = 'My child\'s grades by course';
+$string['report_parent_completion_criteria'] = 'My child\'s completion criteria';
+$string['report_parent_time_spent'] = 'Time spent in courses';
+$string['report_parent_recent_logins'] = 'Recent activity (last 7 days)';
+$string['report_parent_badges'] = 'My child\'s badges earned';
+
+$string['report_teacher_enrollments'] = 'My students per course';
+$string['report_teacher_completion'] = 'Completion progress per course';
+$string['report_teacher_inactive'] = 'Inactive students (+4 weeks)';
+$string['report_teacher_grades'] = 'Average grade per activity';
+$string['report_teacher_forum'] = 'Forum activity by student';
+$string['report_teacher_learner'] = 'Learner report with grades';
+$string['report_teacher_activity_completions'] = 'Activity completions with dates';
+$string['report_teacher_badges'] = 'Students\' badges earned';
+$string['report_teacher_scorm_status'] = 'SCORM completion status';
+$string['report_teacher_analytics'] = 'Predictive analytics indicators';
 
 $string['report_student_courses'] = 'My courses';
 $string['report_student_completion'] = 'My completion progress';

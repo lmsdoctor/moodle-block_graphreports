@@ -125,6 +125,11 @@ class report_manager {
             $this->report_teacher_inactive_students(),
             $this->report_teacher_grades_by_activity(),
             $this->report_teacher_forum_activity(),
+            $this->report_teacher_learner_report(),
+            $this->report_teacher_activity_completions(),
+            $this->report_teacher_badges(),
+            $this->report_teacher_scorm_status(),
+            $this->report_teacher_analytics_predictions(),
         ];
     }
 
@@ -135,6 +140,11 @@ class report_manager {
             $this->report_parent_child_last_login(),
             $this->report_parent_child_grades(),
             $this->report_parent_child_pending_activities(),
+            $this->report_parent_child_grades_by_course(),
+            $this->report_parent_child_completion_criteria(),
+            $this->report_parent_child_time_spent(),
+            $this->report_parent_child_recent_logins(),
+            $this->report_parent_child_badges(),
         ];
     }
 
@@ -860,6 +870,439 @@ class report_manager {
                 'data' => array_values(array_column($rows, 'grade')),
                 'backgroundColor' => self::COLOR_ORANGE_FILL,
                 'borderColor' => self::COLOR_BROWN,
+            ]],
+        ];
+    }
+
+    // ── NEW TEACHER REPORTS ─────────────────────────────────────────────────────
+
+    private function report_teacher_learner_report(): array {
+        global $DB;
+
+        $courseids = $this->get_teacher_course_ids();
+        if (empty($courseids)) {
+            return $this->empty_report('teacher_learner');
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+        $sql = "SELECT u.id, u.firstname, u.lastname, ROUND(AVG(gg.finalgrade), 2) AS avg_grade, COUNT(DISTINCT gg.itemid) AS activity_count
+                  FROM {user_enrolments} ue
+                  JOIN {enrol} e ON e.id = ue.enrolid
+                  JOIN {user} u ON u.id = ue.userid
+             LEFT JOIN {grade_grades} gg ON gg.userid = u.id
+             LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
+                 WHERE e.courseid $insql
+              GROUP BY u.id, u.firstname, u.lastname
+              ORDER BY avg_grade DESC NULLS LAST
+                 LIMIT 15";
+
+        $rows = $this->cached_records_sql('teacher_learner_report', $sql, $params);
+
+        $labels = array_map(function($row) {
+            return $row->firstname . ' ' . $row->lastname;
+        }, $rows);
+
+        return [
+            'id' => 'teacher_learner',
+            'title' => get_string('report_teacher_learner', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => $labels,
+            'datasets' => [[
+                'label' => get_string('average', 'grades'),
+                'data' => array_values(array_map(fn($r) => $r->avg_grade ?? 0, $rows)),
+                'backgroundColor' => self::COLOR_PRIMARY,
+            ]],
+        ];
+    }
+
+    private function report_teacher_activity_completions(): array {
+        global $DB;
+
+        $courseids = $this->get_teacher_course_ids();
+        if (empty($courseids)) {
+            return $this->empty_report('teacher_activity_completions');
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+        $sql = "SELECT cm.id, cm.name, cmc.completionstate, COUNT(cmc.id) AS total, MAX(cmc.timemodified) AS last_completed
+                  FROM {course_modules} cm
+                  JOIN {course_modules_completion} cmc ON cmc.coursemoduleid = cm.id
+                 WHERE cm.course $insql
+                   AND cm.completion > 0
+              GROUP BY cm.id, cm.name, cmc.completionstate
+              ORDER BY cm.name ASC, cmc.completionstate DESC";
+
+        $rows = $this->cached_records_sql('teacher_activity_completions', $sql, $params);
+
+        $activities = [];
+        $completeddata = [];
+        $incompletedata = [];
+
+        foreach ($rows as $row) {
+            if (!isset($activities[$row->id])) {
+                $activities[$row->id] = $row->name;
+                $completeddata[$row->id] = 0;
+                $incompletedata[$row->id] = 0;
+            }
+            if ($row->completionstate == 1) {
+                $completeddata[$row->id] = $row->total;
+            } else {
+                $incompletedata[$row->id] = $row->total;
+            }
+        }
+
+        return [
+            'id' => 'teacher_activity_completions',
+            'title' => get_string('report_teacher_activity_completions', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => array_values($activities),
+            'datasets' => [
+                [
+                    'label' => get_string('completed', 'completion'),
+                    'data' => array_values($completeddata),
+                    'backgroundColor' => self::COLOR_COMPLETED,
+                ],
+                [
+                    'label' => get_string('incomplete', 'completion'),
+                    'data' => array_values($incompletedata),
+                    'backgroundColor' => self::COLOR_INACTIVE,
+                ],
+            ],
+        ];
+    }
+
+    private function report_teacher_badges(): array {
+        global $DB;
+
+        $courseids = $this->get_teacher_course_ids();
+        if (empty($courseids)) {
+            return $this->empty_report('teacher_badges');
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+        $sql = "SELECT b.id, b.name, COUNT(DISTINCT ub.userid) AS issued_count
+                  FROM {badge} b
+                  JOIN {badge_issued} ub ON ub.badgeid = b.id
+                 WHERE b.courseid $insql
+              GROUP BY b.id, b.name
+              ORDER BY issued_count DESC
+                 LIMIT 8";
+
+        $rows = $this->cached_records_sql('teacher_badges', $sql, $params);
+
+        if (empty($rows)) {
+            return $this->empty_report('teacher_badges');
+        }
+
+        return [
+            'id' => 'teacher_badges',
+            'title' => get_string('report_teacher_badges', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => array_column($rows, 'name'),
+            'datasets' => [[
+                'label' => get_string('issued', 'badges'),
+                'data' => array_values(array_column($rows, 'issued_count')),
+                'backgroundColor' => self::COLOR_YELLOW_LIGHT,
+            ]],
+        ];
+    }
+
+    private function report_teacher_scorm_status(): array {
+        global $DB;
+
+        $courseids = $this->get_teacher_course_ids();
+        if (empty($courseids)) {
+            return $this->empty_report('teacher_scorm_status');
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+        $sql = "SELECT c.fullname,
+                       COUNT(CASE WHEN sst.status = 'completed' THEN 1 END) AS completed,
+                       COUNT(CASE WHEN sst.status IN ('incomplete', 'browsed') THEN 1 END) AS incomplete
+                  FROM {scorm} sc
+                  JOIN {course} c ON c.id = sc.course
+             LEFT JOIN {scorm_scoes_track} sst ON sst.scormid = sc.id
+                 WHERE sc.course $insql
+              GROUP BY c.id, c.fullname
+              ORDER BY c.fullname ASC
+                 LIMIT 10";
+
+        $rows = $this->cached_records_sql('teacher_scorm_status', $sql, $params);
+
+        if (empty($rows)) {
+            return $this->empty_report('teacher_scorm_status');
+        }
+
+        return [
+            'id' => 'teacher_scorm_status',
+            'title' => get_string('report_teacher_scorm_status', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => array_column($rows, 'fullname'),
+            'datasets' => [
+                [
+                    'label' => get_string('completed', 'completion'),
+                    'data' => array_values(array_column($rows, 'completed')),
+                    'backgroundColor' => self::COLOR_COMPLETED,
+                ],
+                [
+                    'label' => get_string('incomplete', 'completion'),
+                    'data' => array_values(array_column($rows, 'incomplete')),
+                    'backgroundColor' => self::COLOR_INPROGRESS,
+                ],
+            ],
+        ];
+    }
+
+    private function report_teacher_analytics_predictions(): array {
+        global $DB;
+
+        $courseids = $this->get_teacher_course_ids();
+        if (empty($courseids)) {
+            return $this->empty_report('teacher_analytics');
+        }
+
+        [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+
+        // Calculate risk indicators based on activity and performance
+        $sql = "SELECT u.id, u.firstname, u.lastname,
+                       COUNT(DISTINCT l.id) AS activities_accessed,
+                       AVG(CASE WHEN gg.finalgrade IS NOT NULL THEN gg.finalgrade ELSE 0 END) AS avg_grade,
+                       CASE
+                           WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 14 DAY THEN 3
+                           WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 7 DAY THEN 2
+                           WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 1 DAY THEN 1
+                           ELSE 0
+                       END AS risk_level
+                  FROM {user} u
+                  JOIN {user_enrolments} ue ON ue.userid = u.id
+                  JOIN {enrol} e ON e.id = ue.enrolid
+             LEFT JOIN {logstore_standard_log} l ON l.userid = u.id AND l.courseid = e.courseid
+             LEFT JOIN {grade_grades} gg ON gg.userid = u.id
+             LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
+                 WHERE e.courseid $insql
+              GROUP BY u.id, u.firstname, u.lastname
+              ORDER BY risk_level DESC, avg_grade ASC
+                 LIMIT 12";
+
+        $rows = $this->cached_records_sql('teacher_analytics', $sql, $params);
+
+        $risklevels = [0 => 0, 1 => 0, 2 => 0, 3 => 0];
+        foreach ($rows as $row) {
+            $risklevels[$row->risk_level]++;
+        }
+
+        return [
+            'id' => 'teacher_analytics',
+            'title' => get_string('report_teacher_analytics', 'block_graphreports'),
+            'type' => 'doughnut',
+            'labels' => [
+                get_string('low', 'block_graphreports') ?? 'On Track',
+                get_string('medium', 'block_graphreports') ?? 'Needs Attention',
+                get_string('high', 'block_graphreports') ?? 'At Risk',
+                get_string('critical', 'block_graphreports') ?? 'Critical Risk',
+            ],
+            'datasets' => [[
+                'data' => [$risklevels[0], $risklevels[1], $risklevels[2], $risklevels[3]],
+                'backgroundColor' => [self::COLOR_COMPLETED, self::COLOR_INPROGRESS, self::COLOR_INACTIVE, self::COLOR_ORANGE_ACCENT],
+            ]],
+        ];
+    }
+
+    // ── NEW PARENT REPORTS ──────────────────────────────────────────────────────
+
+    private function report_parent_child_grades_by_course(): array {
+        global $DB;
+
+        $menteeid = $this->get_mentee_id();
+        if (!$menteeid) {
+            return $this->empty_report('parent_grades_by_course');
+        }
+
+        $sql = "SELECT c.fullname AS course_name, ROUND(AVG(gg.finalgrade), 2) AS avg_grade, COUNT(DISTINCT gg.itemid) AS items
+                  FROM {grade_grades} gg
+                  JOIN {grade_items} gi ON gi.id = gg.itemid
+                  JOIN {course} c ON c.id = gi.courseid
+                 WHERE gg.userid = :userid
+                   AND gi.itemtype = 'course'
+                   AND gg.finalgrade IS NOT NULL
+              GROUP BY c.id, c.fullname
+              ORDER BY avg_grade DESC NULLS LAST
+                 LIMIT 8";
+
+        $rows = $this->cached_records_sql('parent_grades_by_course', $sql, ['userid' => $menteeid]);
+
+        if (empty($rows)) {
+            return $this->empty_report('parent_grades_by_course');
+        }
+
+        return [
+            'id' => 'parent_grades_by_course',
+            'title' => get_string('report_parent_grades_by_course', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => array_column($rows, 'course_name'),
+            'datasets' => [[
+                'label' => get_string('course', 'moodle'),
+                'data' => array_values(array_column($rows, 'avg_grade')),
+                'backgroundColor' => self::COLOR_SKY,
+            ]],
+        ];
+    }
+
+    private function report_parent_child_completion_criteria(): array {
+        global $DB;
+
+        $menteeid = $this->get_mentee_id();
+        if (!$menteeid) {
+            return $this->empty_report('parent_completion_criteria');
+        }
+
+        $sql = "SELECT c.fullname AS course_name,
+                       COUNT(CASE WHEN ccc.timecompleted IS NOT NULL THEN 1 END) AS criteria_met,
+                       COUNT(DISTINCT cc.id) AS total_criteria
+                  FROM {course_completion} cc
+                  JOIN {course_completion_criteria} cc_criteria ON cc_criteria.course = cc.course
+                  JOIN {course} c ON c.id = cc.course
+             LEFT JOIN {course_completion_crit_compl} ccc ON ccc.criteriaid = cc_criteria.id AND ccc.userid = cc.userid
+                 WHERE cc.userid = :userid
+              GROUP BY c.id, c.fullname
+              ORDER BY criteria_met DESC
+                 LIMIT 10";
+
+        $rows = $this->cached_records_sql('parent_completion_criteria', $sql, ['userid' => $menteeid]);
+
+        if (empty($rows)) {
+            return $this->empty_report('parent_completion_criteria');
+        }
+
+        return [
+            'id' => 'parent_completion_criteria',
+            'title' => get_string('report_parent_completion_criteria', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => array_column($rows, 'course_name'),
+            'datasets' => [
+                [
+                    'label' => get_string('met', 'completion'),
+                    'data' => array_values(array_column($rows, 'criteria_met')),
+                    'backgroundColor' => self::COLOR_COMPLETED,
+                ],
+                [
+                    'label' => get_string('total', 'moodle'),
+                    'data' => array_values(array_column($rows, 'total_criteria')),
+                    'backgroundColor' => self::COLOR_NOTSTARTED,
+                ],
+            ],
+        ];
+    }
+
+    private function report_parent_child_time_spent(): array {
+        global $DB;
+
+        $menteeid = $this->get_mentee_id();
+        if (!$menteeid) {
+            return $this->empty_report('parent_time_spent');
+        }
+
+        $sql = "SELECT c.fullname AS course_name, COUNT(DISTINCT DATE(FROM_UNIXTIME(lsl.timecreated))) AS days_active
+                  FROM {logstore_standard_log} lsl
+                  JOIN {course} c ON c.id = lsl.courseid
+                 WHERE lsl.userid = :userid
+                   AND lsl.action IN ('view', 'submit', 'edit')
+              GROUP BY c.id, c.fullname
+              ORDER BY days_active DESC
+                 LIMIT 8";
+
+        $rows = $this->cached_records_sql('parent_time_spent', $sql, ['userid' => $menteeid]);
+
+        if (empty($rows)) {
+            return $this->empty_report('parent_time_spent');
+        }
+
+        return [
+            'id' => 'parent_time_spent',
+            'title' => get_string('report_parent_time_spent', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => array_column($rows, 'course_name'),
+            'datasets' => [[
+                'label' => get_string('days', 'moodle') ?? 'Days Active',
+                'data' => array_values(array_column($rows, 'days_active')),
+                'backgroundColor' => self::COLOR_PRIMARY,
+            ]],
+        ];
+    }
+
+    private function report_parent_child_recent_logins(): array {
+        global $DB;
+
+        $menteeid = $this->get_mentee_id();
+        if (!$menteeid) {
+            return $this->empty_report('parent_recent_logins');
+        }
+
+        $since = time() - (7 * DAYSECS);
+        $sql = "SELECT DATE(FROM_UNIXTIME(timecreated)) AS login_date, COUNT(*) AS login_count
+                  FROM {logstore_standard_log}
+                 WHERE userid = :userid
+                   AND action = 'loggedin'
+                   AND timecreated >= :since
+              GROUP BY login_date
+              ORDER BY login_date DESC
+                 LIMIT 7";
+
+        $rows = $this->cached_records_sql('parent_recent_logins', $sql, ['userid' => $menteeid, 'since' => $since]);
+
+        if (empty($rows)) {
+            return $this->empty_report('parent_recent_logins');
+        }
+
+        $rows = array_reverse($rows);
+
+        return [
+            'id' => 'parent_recent_logins',
+            'title' => get_string('report_parent_recent_logins', 'block_graphreports'),
+            'type' => 'line',
+            'labels' => array_column($rows, 'login_date'),
+            'datasets' => [[
+                'label' => get_string('logins', 'block_graphreports'),
+                'data' => array_values(array_column($rows, 'login_count')),
+                'borderColor' => self::COLOR_LOGINS,
+                'backgroundColor' => self::COLOR_PRIMARY_FILL,
+                'tension' => 0.4,
+                'fill' => true,
+            ]],
+        ];
+    }
+
+    private function report_parent_child_badges(): array {
+        global $DB;
+
+        $menteeid = $this->get_mentee_id();
+        if (!$menteeid) {
+            return $this->empty_report('parent_badges');
+        }
+
+        $sql = "SELECT b.name, b.id, MAX(ub.dateissued) AS latest_issued
+                  FROM {badge} b
+                  JOIN {badge_issued} ub ON ub.badgeid = b.id
+                 WHERE ub.userid = :userid
+              GROUP BY b.id, b.name
+              ORDER BY latest_issued DESC
+                 LIMIT 10";
+
+        $rows = $this->cached_records_sql('parent_badges', $sql, ['userid' => $menteeid]);
+
+        if (empty($rows)) {
+            return $this->empty_report('parent_badges');
+        }
+
+        return [
+            'id' => 'parent_badges',
+            'title' => get_string('report_parent_badges', 'block_graphreports'),
+            'type' => 'bar',
+            'labels' => array_column($rows, 'name'),
+            'datasets' => [[
+                'label' => get_string('earned', 'badges'),
+                'data' => array_fill(0, count($rows), 1),
+                'backgroundColor' => self::COLOR_YELLOW_LIGHT,
             ]],
         ];
     }
