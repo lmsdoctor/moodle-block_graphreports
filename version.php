@@ -24,8 +24,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2026031110;            // The current plugin version (Date: YYYYMMDDXX).
+$plugin->version   = 2026032001;            // The current plugin version (Date: YYYYMMDDXX).
 $plugin->requires  = 2022112800;            // Requires Moodle 4.5+.
-$plugin->release   = '0.2.0';               // Human-readable version name.
+$plugin->release   = '0.3.0';               // Human-readable version name.
 $plugin->component = 'block_graphreports';  // Full name of the plugin (used for diagnostics).
 $plugin->maturity  = MATURITY_BETA;         // MATURITY_ALPHA | MATURITY_BETA | MATURITY_RC | MATURITY_STABLE.
