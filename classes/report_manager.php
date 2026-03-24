@@ -371,7 +371,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_enrollments');
+            return $this->empty_report('teacher_enrollments', 'report_teacher_enrollments');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -403,7 +403,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_completion');
+            return $this->empty_report('teacher_completion', 'report_teacher_completion');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -448,7 +448,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_inactive');
+            return $this->empty_report('teacher_inactive', 'report_teacher_inactive');
         }
 
         $since = time() - (28 * DAYSECS);
@@ -487,7 +487,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_grades');
+            return $this->empty_report('teacher_grades', 'report_teacher_grades');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -524,7 +524,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_forum');
+            return $this->empty_report('teacher_forum', 'report_teacher_forum');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -582,7 +582,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_courses');
+            return $this->empty_report('parent_courses', 'report_parent_courses');
         }
 
         $sql = "SELECT c.fullname AS course_name,
@@ -626,7 +626,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_completion');
+            return $this->empty_report('parent_completion', 'report_parent_completion');
         }
 
         $sql = "SELECT c.fullname AS course_name,
@@ -676,7 +676,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_lastlogin');
+            return $this->empty_report('parent_lastlogin', 'report_parent_lastlogin');
         }
 
         $user = $DB->get_record('user', ['id' => $menteeid], 'id, firstname, lastname, lastaccess', MUST_EXIST);
@@ -700,7 +700,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_grades');
+            return $this->empty_report('parent_grades', 'report_parent_grades');
         }
 
         $sql = "SELECT gi.itemname AS activity_name, ROUND(gg.finalgrade, 1) AS grade
@@ -733,7 +733,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_pending');
+            return $this->empty_report('parent_pending', 'report_parent_pending');
         }
 
         $sql = "SELECT COUNT(*) AS total
@@ -884,7 +884,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_learner');
+            return $this->empty_report('teacher_learner', 'report_teacher_learner');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -928,7 +928,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_activity_completions');
+            return $this->empty_report('teacher_activity_completions', 'report_teacher_activity_completions');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -993,7 +993,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_badges');
+            return $this->empty_report('teacher_badges', 'report_teacher_badges');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -1008,7 +1008,7 @@ class report_manager {
         $rows = $this->cached_records_sql('teacher_badges', $sql, $params);
 
         if (empty($rows)) {
-            return $this->empty_report('teacher_badges');
+            return $this->empty_report('teacher_badges', 'report_teacher_badges');
         }
 
         return [
@@ -1029,7 +1029,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_scorm_status');
+            return $this->empty_report('teacher_scorm_status', 'report_teacher_scorm_status');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -1050,7 +1050,7 @@ class report_manager {
         $rows = $this->cached_records_sql('teacher_scorm_status', $sql, $params);
 
         if (empty($rows)) {
-            return $this->empty_report('teacher_scorm_status');
+            return $this->empty_report('teacher_scorm_status', 'report_teacher_scorm_status');
         }
 
         return [
@@ -1078,7 +1078,7 @@ class report_manager {
 
         $courseids = $this->get_teacher_course_ids();
         if (empty($courseids)) {
-            return $this->empty_report('teacher_analytics');
+            return $this->empty_report('teacher_analytics', 'report_teacher_analytics');
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -1138,7 +1138,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_grades_by_course');
+            return $this->empty_report('parent_grades_by_course', 'report_parent_grades_by_course');
         }
 
         $sql = "SELECT t.course_name, t.avg_grade, t.items
@@ -1160,7 +1160,7 @@ class report_manager {
         $rows = $this->cached_records_sql('parent_grades_by_course', $sql, ['userid' => $menteeid]);
 
         if (empty($rows)) {
-            return $this->empty_report('parent_grades_by_course');
+            return $this->empty_report('parent_grades_by_course', 'report_parent_grades_by_course');
         }
 
         return [
@@ -1181,7 +1181,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_completion_criteria');
+            return $this->empty_report('parent_completion_criteria', 'report_parent_completion_criteria');
         }
 
         $sql = "SELECT c.fullname AS course_name,
@@ -1199,7 +1199,7 @@ class report_manager {
         $rows = $this->cached_records_sql('parent_completion_criteria', $sql, ['userid' => $menteeid]);
 
         if (empty($rows)) {
-            return $this->empty_report('parent_completion_criteria');
+            return $this->empty_report('parent_completion_criteria', 'report_parent_completion_criteria');
         }
 
         return [
@@ -1227,7 +1227,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_time_spent');
+            return $this->empty_report('parent_time_spent', 'report_parent_time_spent');
         }
 
         $sql = "SELECT c.fullname AS course_name, COUNT(DISTINCT DATE(FROM_UNIXTIME(lsl.timecreated))) AS days_active
@@ -1242,7 +1242,7 @@ class report_manager {
         $rows = $this->cached_records_sql('parent_time_spent', $sql, ['userid' => $menteeid]);
 
         if (empty($rows)) {
-            return $this->empty_report('parent_time_spent');
+            return $this->empty_report('parent_time_spent', 'report_parent_time_spent');
         }
 
         return [
@@ -1263,7 +1263,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_recent_logins');
+            return $this->empty_report('parent_recent_logins', 'report_parent_recent_logins');
         }
 
         $since = time() - (7 * DAYSECS);
@@ -1279,7 +1279,7 @@ class report_manager {
         $rows = $this->cached_records_sql('parent_recent_logins', $sql, ['userid' => $menteeid, 'since' => $since]);
 
         if (empty($rows)) {
-            return $this->empty_report('parent_recent_logins');
+            return $this->empty_report('parent_recent_logins', 'report_parent_recent_logins');
         }
 
         $rows = array_reverse($rows);
@@ -1305,7 +1305,7 @@ class report_manager {
 
         $menteeid = $this->get_mentee_id();
         if (!$menteeid) {
-            return $this->empty_report('parent_badges');
+            return $this->empty_report('parent_badges', 'report_parent_badges');
         }
 
         $sql = "SELECT b.name, b.id, MAX(ub.dateissued) AS latest_issued
@@ -1319,7 +1319,7 @@ class report_manager {
         $rows = $this->cached_records_sql('parent_badges', $sql, ['userid' => $menteeid]);
 
         if (empty($rows)) {
-            return $this->empty_report('parent_badges');
+            return $this->empty_report('parent_badges', 'report_parent_badges');
         }
 
         return [
@@ -1335,11 +1335,11 @@ class report_manager {
         ];
     }
 
-    private function empty_report(string $id): array {
+    private function empty_report(string $id , string $getstring = 'empty_state'): array {
         return [
             'id' => $id,
             'type' => 'empty',
-            'title' => get_string('empty_state', 'block_graphreports'),
+            'title' => get_string($getstring, 'block_graphreports'),
             'labels' => [],
             'datasets' => [],
         ];
