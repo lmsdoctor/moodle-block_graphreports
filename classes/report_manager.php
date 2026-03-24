@@ -885,7 +885,9 @@ class report_manager {
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-        $sql = "SELECT u.id, u.firstname, u.lastname, ROUND(AVG(gg.finalgrade), 2) AS avg_grade, COUNT(DISTINCT gg.itemid) AS activity_count
+        $sql = "SELECT u.id, u.firstname, u.lastname,
+                       ROUND(AVG(gg.finalgrade), 2) AS avg_grade,
+                       COUNT(DISTINCT gg.itemid) AS activity_count
                   FROM {user_enrolments} ue
                   JOIN {enrol} e ON e.id = ue.enrolid
                   JOIN {user} u ON u.id = ue.userid
@@ -893,7 +895,7 @@ class report_manager {
              LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
                  WHERE e.courseid $insql
               GROUP BY u.id, u.firstname, u.lastname
-              ORDER BY avg_grade DESC NULLS LAST
+              ORDER BY avg_grade IS NULL, avg_grade DES
                  LIMIT 15";
 
         $rows = $this->cached_records_sql('teacher_learner_report', $sql, $params);
@@ -1108,7 +1110,7 @@ class report_manager {
         ];
     }
 
-    // ── NEW PARENT REPORTS ──────────────────────────────────────────────────────
+    // ── NEW PARENT REPORTS ───────────────────────────────────────
 
     private function report_parent_child_grades_by_course(): array {
         global $DB;
@@ -1118,7 +1120,9 @@ class report_manager {
             return $this->empty_report('parent_grades_by_course');
         }
 
-        $sql = "SELECT c.fullname AS course_name, ROUND(AVG(gg.finalgrade), 2) AS avg_grade, COUNT(DISTINCT gg.itemid) AS items
+        $sql = "SELECT c.fullname AS course_name,
+                       ROUND(AVG(gg.finalgrade), 2) AS avg_grade,
+                       COUNT(DISTINCT gg.itemid) AS items
                   FROM {grade_grades} gg
                   JOIN {grade_items} gi ON gi.id = gg.itemid
                   JOIN {course} c ON c.id = gi.courseid
@@ -1126,7 +1130,7 @@ class report_manager {
                    AND gi.itemtype = 'course'
                    AND gg.finalgrade IS NOT NULL
               GROUP BY c.id, c.fullname
-              ORDER BY avg_grade DESC NULLS LAST
+              ORDER BY avg_grade IS NULL, avg_grade DES
                  LIMIT 8";
 
         $rows = $this->cached_records_sql('parent_grades_by_course', $sql, ['userid' => $menteeid]);
