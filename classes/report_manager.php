@@ -491,14 +491,17 @@ class report_manager {
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-        $sql = "SELECT gi.id, gi.itemname AS activity_name, ROUND(AVG(gg.finalgrade), 2) AS avg_grade
-                  FROM {grade_grades} gg
-                  JOIN {grade_items} gi ON gi.id = gg.itemid
-                 WHERE gi.courseid $insql
-                   AND gi.itemtype = 'mod'
-                   AND gg.finalgrade IS NOT NULL
-              GROUP BY gi.id, gi.itemname
-              ORDER BY avg_grade ASC
+        $sql = "SELECT t.id, t.activity_name, t.avg_grade
+                  FROM (
+                        SELECT gi.id, gi.itemname AS activity_name, ROUND(AVG(gg.finalgrade), 2) AS avg_grade
+                          FROM {grade_grades} gg
+                          JOIN {grade_items} gi ON gi.id = gg.itemid
+                         WHERE gi.courseid $insql
+                           AND gi.itemtype = 'mod'
+                           AND gg.finalgrade IS NOT NULL
+                      GROUP BY gi.id, gi.itemname
+                  ) t
+              ORDER BY t.avg_grade ASC
                  LIMIT 10";
 
         $rows = $this->cached_records_sql('teacher_grades_activity', $sql, $params);
@@ -885,17 +888,20 @@ class report_manager {
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-        $sql = "SELECT u.id, u.firstname, u.lastname,
-                       ROUND(AVG(gg.finalgrade), 2) AS avg_grade,
-                       COUNT(DISTINCT gg.itemid) AS activity_count
-                  FROM {user_enrolments} ue
-                  JOIN {enrol} e ON e.id = ue.enrolid
-                  JOIN {user} u ON u.id = ue.userid
-             LEFT JOIN {grade_grades} gg ON gg.userid = u.id
-             LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
-                 WHERE e.courseid $insql
-              GROUP BY u.id, u.firstname, u.lastname
-              ORDER BY avg_grade IS NULL, avg_grade DESC
+        $sql = "SELECT t.id, t.firstname, t.lastname, t.avg_grade, t.activity_count
+                  FROM (
+                        SELECT u.id, u.firstname, u.lastname,
+                               ROUND(AVG(gg.finalgrade), 2) AS avg_grade,
+                               COUNT(DISTINCT gg.itemid) AS activity_count
+                          FROM {user_enrolments} ue
+                          JOIN {enrol} e ON e.id = ue.enrolid
+                          JOIN {user} u ON u.id = ue.userid
+                     LEFT JOIN {grade_grades} gg ON gg.userid = u.id
+                     LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
+                         WHERE e.courseid $insql
+                      GROUP BY u.id, u.firstname, u.lastname
+                  ) t
+              ORDER BY t.avg_grade IS NULL, t.avg_grade DESC
                  LIMIT 15";
 
         $rows = $this->cached_records_sql('teacher_learner_report', $sql, $params);
@@ -1066,24 +1072,27 @@ class report_manager {
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
 
         // Calculate risk indicators based on activity and performance
-        $sql = "SELECT u.id, u.firstname, u.lastname,
-                       COUNT(DISTINCT l.id) AS activities_accessed,
-                       AVG(CASE WHEN gg.finalgrade IS NOT NULL THEN gg.finalgrade ELSE 0 END) AS avg_grade,
-                       CASE
-                           WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 14 DAY THEN 3
-                           WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 7 DAY THEN 2
-                           WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 1 DAY THEN 1
-                           ELSE 0
-                       END AS risk_level
-                  FROM {user} u
-                  JOIN {user_enrolments} ue ON ue.userid = u.id
-                  JOIN {enrol} e ON e.id = ue.enrolid
-             LEFT JOIN {logstore_standard_log} l ON l.userid = u.id AND l.courseid = e.courseid
-             LEFT JOIN {grade_grades} gg ON gg.userid = u.id
-             LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
-                 WHERE e.courseid $insql
-              GROUP BY u.id, u.firstname, u.lastname
-              ORDER BY risk_level DESC, avg_grade ASC
+        $sql = "SELECT t.id, t.firstname, t.lastname, t.activities_accessed, t.avg_grade, t.risk_level
+                  FROM (
+                        SELECT u.id, u.firstname, u.lastname,
+                               COUNT(DISTINCT l.id) AS activities_accessed,
+                               AVG(CASE WHEN gg.finalgrade IS NOT NULL THEN gg.finalgrade ELSE 0 END) AS avg_grade,
+                               CASE
+                                   WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 14 DAY THEN 3
+                                   WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 7 DAY THEN 2
+                                   WHEN MAX(l.timecreated) < CURRENT_TIMESTAMP - INTERVAL 1 DAY THEN 1
+                                   ELSE 0
+                               END AS risk_level
+                          FROM {user} u
+                          JOIN {user_enrolments} ue ON ue.userid = u.id
+                          JOIN {enrol} e ON e.id = ue.enrolid
+                     LEFT JOIN {logstore_standard_log} l ON l.userid = u.id AND l.courseid = e.courseid
+                     LEFT JOIN {grade_grades} gg ON gg.userid = u.id
+                     LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
+                         WHERE e.courseid $insql
+                      GROUP BY u.id, u.firstname, u.lastname
+                  ) t
+              ORDER BY t.risk_level DESC, t.avg_grade ASC
                  LIMIT 12";
 
         $rows = $this->cached_records_sql('teacher_analytics', $sql, $params);
@@ -1120,17 +1129,20 @@ class report_manager {
             return $this->empty_report('parent_grades_by_course');
         }
 
-        $sql = "SELECT c.fullname AS course_name,
-                       ROUND(AVG(gg.finalgrade), 2) AS avg_grade,
-                       COUNT(DISTINCT gg.itemid) AS items
-                  FROM {grade_grades} gg
-                  JOIN {grade_items} gi ON gi.id = gg.itemid
-                  JOIN {course} c ON c.id = gi.courseid
-                 WHERE gg.userid = :userid
-                   AND gi.itemtype = 'course'
-                   AND gg.finalgrade IS NOT NULL
-              GROUP BY c.id, c.fullname
-              ORDER BY avg_grade IS NULL, avg_grade DESC
+        $sql = "SELECT t.course_name, t.avg_grade, t.items
+                  FROM (
+                        SELECT c.fullname AS course_name,
+                               ROUND(AVG(gg.finalgrade), 2) AS avg_grade,
+                               COUNT(DISTINCT gg.itemid) AS items
+                          FROM {grade_grades} gg
+                          JOIN {grade_items} gi ON gi.id = gg.itemid
+                          JOIN {course} c ON c.id = gi.courseid
+                         WHERE gg.userid = :userid
+                           AND gi.itemtype = 'course'
+                           AND gg.finalgrade IS NOT NULL
+                      GROUP BY c.id, c.fullname
+                  ) t
+              ORDER BY t.avg_grade IS NULL, t.avg_grade DESC
                  LIMIT 8";
 
         $rows = $this->cached_records_sql('parent_grades_by_course', $sql, ['userid' => $menteeid]);
