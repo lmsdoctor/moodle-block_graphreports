@@ -932,13 +932,15 @@ class report_manager {
         }
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-        $sql = "SELECT cm.id, cm.name, cmc.completionstate, COUNT(cmc.id) AS total, MAX(cmc.timemodified) AS last_completed
+        $sql = "SELECT cm.id, cm.course AS courseid, cmc.completionstate,
+                       COUNT(cmc.id) AS total,
+                       MAX(cmc.timemodified) AS last_completed
                   FROM {course_modules} cm
                   JOIN {course_modules_completion} cmc ON cmc.coursemoduleid = cm.id
                  WHERE cm.course $insql
                    AND cm.completion > 0
-              GROUP BY cm.id, cm.name, cmc.completionstate
-              ORDER BY cm.name ASC, cmc.completionstate DESC";
+              GROUP BY cm.id, cm.course, cmc.completionstate
+              ORDER BY cm.id ASC, cmc.completionstate DESC";
 
         $rows = $this->cached_records_sql('teacher_activity_completions', $sql, $params);
 
@@ -946,9 +948,16 @@ class report_manager {
         $completeddata = [];
         $incompletedata = [];
 
+        // Resolve activity names via modinfo (course_modules does not store a name).
+        $modinfoByCourse = [];
         foreach ($rows as $row) {
+            if (!isset($modinfoByCourse[$row->courseid])) {
+                $modinfoByCourse[$row->courseid] = get_fast_modinfo((int) $row->courseid);
+            }
+            $modinfo = $modinfoByCourse[$row->courseid];
+            $cmname = $modinfo->cms[$row->id]->name ?? ('Activity ' . $row->id);
             if (!isset($activities[$row->id])) {
-                $activities[$row->id] = $row->name;
+                $activities[$row->id] = $cmname;
                 $completeddata[$row->id] = 0;
                 $incompletedata[$row->id] = 0;
             }
@@ -1025,11 +1034,14 @@ class report_manager {
 
         [$insql, $params] = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
         $sql = "SELECT c.fullname,
-                       COUNT(CASE WHEN sst.status = 'completed' THEN 1 END) AS completed,
-                       COUNT(CASE WHEN sst.status IN ('incomplete', 'browsed') THEN 1 END) AS incomplete
+                       COUNT(DISTINCT CASE WHEN sv.value IN ('completed', 'passed') THEN sa.id END) AS completed,
+                       COUNT(DISTINCT CASE WHEN sv.value IN ('incomplete', 'browsed') THEN sa.id END) AS incomplete
                   FROM {scorm} sc
                   JOIN {course} c ON c.id = sc.course
-             LEFT JOIN {scorm_scoes_track} sst ON sst.scormid = sc.id
+             LEFT JOIN {scorm_attempt} sa ON sa.scormid = sc.id
+             LEFT JOIN {scorm_scoes_value} sv ON sv.attemptid = sa.id
+             LEFT JOIN {scorm_element} se ON se.id = sv.elementid
+                                         AND se.element IN ('cmi.core.lesson_status', 'cmi.completion_status', 'cmi.success_status')
                  WHERE sc.course $insql
               GROUP BY c.id, c.fullname
               ORDER BY c.fullname ASC
@@ -1174,8 +1186,8 @@ class report_manager {
 
         $sql = "SELECT c.fullname AS course_name,
                        COUNT(CASE WHEN ccc.timecompleted IS NOT NULL THEN 1 END) AS criteria_met,
-                       COUNT(DISTINCT cc.id) AS total_criteria
-                  FROM {course_completion} cc
+                       COUNT(DISTINCT cc_criteria.id) AS total_criteria
+                  FROM {course_completions} cc
                   JOIN {course_completion_criteria} cc_criteria ON cc_criteria.course = cc.course
                   JOIN {course} c ON c.id = cc.course
              LEFT JOIN {course_completion_crit_compl} ccc ON ccc.criteriaid = cc_criteria.id AND ccc.userid = cc.userid
