@@ -895,7 +895,7 @@ class report_manager {
              LEFT JOIN {grade_items} gi ON gi.id = gg.itemid AND gi.courseid = e.courseid
                  WHERE e.courseid $insql
               GROUP BY u.id, u.firstname, u.lastname
-              ORDER BY avg_grade IS NULL, avg_grade DES
+              ORDER BY avg_grade IS NULL, avg_grade DESC
                  LIMIT 15";
 
         $rows = $this->cached_records_sql('teacher_learner_report', $sql, $params);
@@ -1130,7 +1130,7 @@ class report_manager {
                    AND gi.itemtype = 'course'
                    AND gg.finalgrade IS NOT NULL
               GROUP BY c.id, c.fullname
-              ORDER BY avg_grade IS NULL, avg_grade DES
+              ORDER BY avg_grade IS NULL, avg_grade DESC
                  LIMIT 8";
 
         $rows = $this->cached_records_sql('parent_grades_by_course', $sql, ['userid' => $menteeid]);
